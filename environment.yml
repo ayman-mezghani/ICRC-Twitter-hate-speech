@@ -1,0 +1,14 @@
+name: lsir
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.8
+  - numpy
+  - pandas
+  - jupyterlab
+  - pip
+  - pip:
+    - pyarrow
+    - searchtweets-v2
+    - tweepy
