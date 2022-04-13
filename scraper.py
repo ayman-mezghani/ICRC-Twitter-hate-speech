@@ -1,11 +1,13 @@
-import numpy as np
+import json
+import time
+from datetime import datetime
+from typing import List, Tuple
+
 import pandas as pd
 import tweepy
-import json
-from typing import List, Tuple
-from datetime import datetime
 
 QUERY_CHAR_LIMIT = 1024
+EXCLUDE_RETWEETS = ' -is:retweet'
 
 
 def _splitter_helper(ls: List[Tuple[str, datetime]], char_limit: int,
@@ -17,11 +19,11 @@ def _splitter_helper(ls: List[Tuple[str, datetime]], char_limit: int,
     sublist_timestamp = datetime.utcnow()
 
     for kw, t in ls:
-        # 3 to account for ' OR' to be prepended to each string when constructing the query
-        entry_length = len(kw) + 3
+        # 6 to account for ' OR' to be prepended to each string when constructing the query, as well as the quotes
+        entry_length = len(kw) + 6
 
         # if sublist can't contain the new item
-        if sublist_char_length + entry_length > char_limit:
+        if sublist_char_length + entry_length + len(EXCLUDE_RETWEETS) > char_limit:
             # print(sublist_char_length)
             res.append((sublist, sublist_timestamp))
 
@@ -91,7 +93,7 @@ def _create_query(keyword_list: List[str]) -> str:
     :param keyword_list: list of keywords
     :return: a valid query for the Twitter API
     """
-    query = ' OR '.join(keyword_list)
+    query = '("' + '" OR "'.join(keyword_list) + '")' + EXCLUDE_RETWEETS
     return query
 
 
@@ -107,10 +109,21 @@ def create_client(token: str) -> tweepy.Client:
     return client
 
 
-def get_tweets(client: tweepy.Client, keywords: List[str], start_time: datetime, end_time: datetime):
-    # https://docs.tweepy.org/en/latest/client.html#search-tweets
-    query = _create_query(keyword_list=keywords)
+def _get_tweets_count_page(client: tweepy.Client, query: str, start_time: datetime = None, end_time: datetime = None,
+                     next_token: str = None):
+    count = client.get_all_tweets_count(query=query,
+                                        start_time=start_time,
+                                        end_time=end_time,
+                                        granularity='day',
+                                        next_token=next_token,
+                                       )
+    return count
 
+
+def _get_tweets_page(client: tweepy.Client, query: str, start_time: datetime = None, end_time: datetime = None,
+                     next_token: str = None):
+    # https://docs.tweepy.org/en/latest/client.html#search-tweets
+    
     tweets = client.search_all_tweets(query=query,
                                       start_time=start_time,
                                       end_time=end_time,
@@ -126,6 +139,63 @@ def get_tweets(client: tweepy.Client, keywords: List[str], start_time: datetime,
                                           ['id', 'name', 'username', 'created_at', 'description', 'entities',
                                            'location', 'pinned_tweet_id', 'profile_image_url', 'protected',
                                            'public_metrics', 'url', 'verified', 'withheld']),
+                                      next_token=next_token,
                                       )
 
     return tweets
+
+
+def get_tweets(client: tweepy.Client, keywords: List[str], start_time: datetime = None,
+               end_time: datetime = None) -> Tuple[List[dict], datetime]:
+
+    query = _create_query(keyword_list=keywords)
+    
+    print('query length', len(query))
+    print(query)
+    print(start_time)
+    print(end_time)
+    
+    count_next_token = None
+    count = 0
+    while True:
+        page_counts = _get_tweets_count_page(client=client,
+                                             query=query,
+                                             start_time=start_time,
+                                             end_time=end_time,
+                                             next_token=count_next_token)
+        
+        count += page_counts['meta']['total_tweet_count']
+        
+        if not page_counts['meta'].get('next_token'):
+            break
+        else:
+            count_next_token = page_counts['meta'].get('next_token')
+    
+    print(count)
+    
+    next_token = None
+    i = 0
+    
+    tweets = []
+    while True:
+        page = _get_tweets_page(client=client,
+                                query=query,
+                                start_time=start_time,
+                                end_time=end_time,
+                                next_token=next_token)
+
+        time.sleep(4)
+
+        tweets += page['data']
+        
+        if len(tweets) // 1000 == i:
+            i += 1
+            print(len(tweets), '/', count)
+            
+        if not page['meta'].get('next_token'):
+            break
+        else:
+            next_token = page['meta'].get('next_token')
+
+    return tweets, pd.to_datetime(max(e['created_at'] for e in tweets)).tz_localize(None)
+
