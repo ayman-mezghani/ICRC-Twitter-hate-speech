@@ -1,4 +1,7 @@
 .idea/
+dump/
+data/
+draft*
 token*
 test*
 /data/keywords.txt
