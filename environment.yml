@@ -7,8 +7,11 @@ dependencies:
   - numpy
   - pandas
   - jupyterlab
+  - seaborn
   - pip
   - pip:
     - pyarrow
-    - searchtweets-v2
     - tweepy
+    - matplotlib
+    - plotly
+    - ruptures
