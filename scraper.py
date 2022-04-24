@@ -2,6 +2,7 @@ import json
 import time
 from datetime import datetime
 from typing import List, Tuple
+from tqdm import tqdm
 
 import pandas as pd
 import tweepy
@@ -11,7 +12,7 @@ EXCLUDE_RETWEETS = ' -is:retweet'
 
 
 def _splitter_helper(ls: List[Tuple[str, datetime]], char_limit: int,
-                     earliest_start: datetime) -> List[Tuple[List[str], datetime]]:
+                     earliest_start: datetime, authors: bool = False) -> List[Tuple[List[str], datetime]]:
     # init step
     res = []
     sublist = []
@@ -19,9 +20,13 @@ def _splitter_helper(ls: List[Tuple[str, datetime]], char_limit: int,
     sublist_timestamp = datetime.utcnow()
 
     for kw, t in ls:
-        # 6 to account for ' OR' to be prepended to each string when constructing the query, as well as the quotes
-        entry_length = len(kw) + 6
-
+        if not authors:
+            # 6 to account for ' OR' to be prepended to each string when constructing the query, as well as the quotes
+            entry_length = len(kw) + 6
+        else:
+            # 6 to account for ' OR from:' to be prepended to each string when constructing the query
+            entry_length = len(kw) + 9
+            
         # if sublist can't contain the new item
         if sublist_char_length + entry_length + len(EXCLUDE_RETWEETS) > char_limit:
             # print(sublist_char_length)
@@ -50,13 +55,14 @@ def _splitter_helper(ls: List[Tuple[str, datetime]], char_limit: int,
 
 
 def splitter(kw_list: List[Tuple[str, datetime]], char_limit: int,
-             earliest_start: datetime) -> List[Tuple[List[str], str]]:
+             earliest_start: datetime, authors: bool = False) -> List[Tuple[List[str], str]]:
     """
     Splits a list of accounts into smaller slices of max size `char_limit`.
 
     :param kw_list: keywords list
     :param char_limit: limit of number of characters per slice
     :param earliest_start: earliest start date for tweet fetching
+    :param authors: specifies whether the keywords are being used as authors or not
     :return: a list containing slices of keywords
     """
 
@@ -64,7 +70,7 @@ def splitter(kw_list: List[Tuple[str, datetime]], char_limit: int,
 
     print('none', len(none_time_list))
     if len(none_time_list) != 0:
-        res = _splitter_helper(none_time_list, char_limit, earliest_start)
+        res = _splitter_helper(none_time_list, char_limit, earliest_start, authors)
     else:
         res = []
 
@@ -75,12 +81,12 @@ def splitter(kw_list: List[Tuple[str, datetime]], char_limit: int,
     print('sorted', len(sorted_by_timestamp))
 
     if len(sorted_by_timestamp) != 0:
-        res += _splitter_helper(sorted_by_timestamp, char_limit, earliest_start)
+        res += _splitter_helper(sorted_by_timestamp, char_limit, earliest_start, authors)
 
     return res
 
 
-def _create_query(keyword_list: List[str]) -> str:
+def _create_query(keyword_list: List[str], authors: bool = False) -> str:
     """
     Creates a query using keywords.
 
@@ -93,7 +99,10 @@ def _create_query(keyword_list: List[str]) -> str:
     :param keyword_list: list of keywords
     :return: a valid query for the Twitter API
     """
-    query = '("' + '" OR "'.join(keyword_list) + '")' + EXCLUDE_RETWEETS
+    if not authors:
+        query = '("' + '" OR "'.join(keyword_list) + '")' + EXCLUDE_RETWEETS
+    else:
+        query = '(from:' + ' OR from:'.join(keyword_list) + ')' + EXCLUDE_RETWEETS
     return query
 
 
@@ -145,8 +154,8 @@ def _get_tweets_page(client: tweepy.Client, query: str, start_time: datetime = N
 
 
 def get_tweets(client: tweepy.Client, keywords: List[str], start_time: datetime = None,
-               end_time: datetime = None) -> Tuple[List[dict], List[dict], datetime]:
-    query = _create_query(keyword_list=keywords)
+               end_time: datetime = None, authors: bool = False) -> Tuple[List[dict], List[dict], datetime]:
+    query = _create_query(keyword_list=keywords, authors=authors)
 
     print('query length', len(query))
     print(query)
@@ -232,4 +241,48 @@ def get_user_data(client: tweepy.Client, ids: List[str]):
     return users
 
 
-# https://docs.tweepy.org/en/latest/client.html#tweepy.Client.get_users_tweets
+def _get_user_tweets(client: tweepy.Client, user_id: int, start_time: datetime = None, end_time: datetime = None,
+                     next_token: str = None):
+    # https://docs.tweepy.org/en/latest/client.html#tweepy.Client.get_users_tweets
+    tweets = client.get_users_tweets(id=user_id,
+                                     start_time=start_time,
+                                     end_time=end_time,
+                                     max_results=100,
+                                     expansions=['author_id'],
+                                     tweet_fields=['id', 'text', 'attachments', 'author_id', 'context_annotations',
+                                                   'conversation_id', 'created_at', 'entities', 'geo',
+                                                   'in_reply_to_user_id', 'lang',
+                                                   # 'non_public_metrics', 'organic_metrics', 'promoted_metrics',
+                                                   'public_metrics', 'referenced_tweets', 'reply_settings', 'source',
+                                                   'withheld'],
+                                     user_fields=['id', 'name', 'username', 'created_at', 'description', 'entities',
+                                                  'location', 'pinned_tweet_id', 'profile_image_url', 'protected',
+                                                  'public_metrics', 'url', 'verified', 'withheld'],
+                                     #pagination_token=next_token,
+                                     )
+    
+    return tweets
+
+
+def get_users_tweets(client: tweepy.Client, user_ids: List[int], start_time: datetime = None,
+                     end_time: datetime = None) -> Tuple[List[dict], List[dict]]:
+    
+    print(len(user_ids))
+    print(start_time)
+    print(end_time)
+
+    tweets = []
+    users = []
+    
+    for user_id in tqdm(user_ids):
+        page = _get_user_tweets(client=client,
+                                user_id=user_id,
+                                start_time=start_time,
+                                end_time=end_time)
+
+        time.sleep(4)
+        
+        tweets += page.get('data', [])
+        users += page.get('includes', {}).get('users', [])
+
+    return tweets, users
