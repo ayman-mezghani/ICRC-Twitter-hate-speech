@@ -110,35 +110,34 @@ def create_client(token: str) -> tweepy.Client:
 
 
 def _get_tweets_count_page(client: tweepy.Client, query: str, start_time: datetime = None, end_time: datetime = None,
-                     next_token: str = None):
+                           next_token: str = None):
     count = client.get_all_tweets_count(query=query,
                                         start_time=start_time,
                                         end_time=end_time,
                                         granularity='day',
                                         next_token=next_token,
-                                       )
+                                        )
     return count
 
 
 def _get_tweets_page(client: tweepy.Client, query: str, start_time: datetime = None, end_time: datetime = None,
                      next_token: str = None):
     # https://docs.tweepy.org/en/latest/client.html#search-tweets
-    
+
     tweets = client.search_all_tweets(query=query,
                                       start_time=start_time,
                                       end_time=end_time,
                                       max_results=100,
-                                      tweet_fields=','.join(
-                                          ['id', 'text', 'attachments', 'author_id', 'context_annotations',
-                                           'conversation_id', 'created_at', 'entities', 'geo', 'in_reply_to_user_id',
-                                           'lang',
-                                           # 'non_public_metrics', 'organic_metrics', 'promoted_metrics',
-                                           'public_metrics', 'referenced_tweets', 'reply_settings', 'source',
-                                           'withheld']),
-                                      user_fields=','.join(
-                                          ['id', 'name', 'username', 'created_at', 'description', 'entities',
-                                           'location', 'pinned_tweet_id', 'profile_image_url', 'protected',
-                                           'public_metrics', 'url', 'verified', 'withheld']),
+                                      expansions=['author_id'],
+                                      tweet_fields=['id', 'text', 'attachments', 'author_id', 'context_annotations',
+                                                    'conversation_id', 'created_at', 'entities', 'geo',
+                                                    'in_reply_to_user_id', 'lang',
+                                                    # 'non_public_metrics', 'organic_metrics', 'promoted_metrics',
+                                                    'public_metrics', 'referenced_tweets', 'reply_settings', 'source',
+                                                    'withheld'],
+                                      user_fields=['id', 'name', 'username', 'created_at', 'description', 'entities',
+                                                   'location', 'pinned_tweet_id', 'profile_image_url', 'protected',
+                                                   'public_metrics', 'url', 'verified', 'withheld'],
                                       next_token=next_token,
                                       )
 
@@ -146,15 +145,14 @@ def _get_tweets_page(client: tweepy.Client, query: str, start_time: datetime = N
 
 
 def get_tweets(client: tweepy.Client, keywords: List[str], start_time: datetime = None,
-               end_time: datetime = None) -> Tuple[List[dict], datetime]:
-
+               end_time: datetime = None) -> Tuple[List[dict], List[dict], datetime]:
     query = _create_query(keyword_list=keywords)
-    
+
     print('query length', len(query))
     print(query)
     print(start_time)
     print(end_time)
-    
+
     count_next_token = None
     count = 0
     while True:
@@ -163,20 +161,21 @@ def get_tweets(client: tweepy.Client, keywords: List[str], start_time: datetime 
                                              start_time=start_time,
                                              end_time=end_time,
                                              next_token=count_next_token)
-        
+
         count += page_counts['meta']['total_tweet_count']
-        
+
         if not page_counts['meta'].get('next_token'):
             break
         else:
             count_next_token = page_counts['meta'].get('next_token')
-    
+
     print(count)
-    
+
     next_token = None
     i = 0
-    
+
     tweets = []
+    users = []
     while True:
         page = _get_tweets_page(client=client,
                                 query=query,
@@ -187,15 +186,50 @@ def get_tweets(client: tweepy.Client, keywords: List[str], start_time: datetime 
         time.sleep(4)
 
         tweets += page['data']
-        
+        users += page['includes']['users']
+
         if len(tweets) // 1000 == i:
             i += 1
             print(len(tweets), '/', count)
-            
+
         if not page['meta'].get('next_token'):
             break
         else:
             next_token = page['meta'].get('next_token')
 
-    return tweets, pd.to_datetime(max(e['created_at'] for e in tweets)).tz_localize(None)
+    return tweets, users, pd.to_datetime(max(e['created_at'] for e in tweets)).tz_localize(None)
 
+
+def _get_users_batch(client: tweepy.Client, ids: List[str]):
+    # https://docs.tweepy.org/en/latest/client.html#tweepy.Client.get_users
+
+    users = client.get_users(ids=ids,
+                             user_fields=','.join(
+                                 ['created_at', 'description', 'entities', 'id', 'location', 'name', 'pinned_tweet_id',
+                                  'profile_image_url', 'protected', 'public_metrics', 'url', 'username', 'verified',
+                                  'withheld']),
+                             )
+
+    return users
+
+
+def get_user_data(client: tweepy.Client, ids: List[str]):
+    users = []
+
+    n = len(ids)
+    for i in range(0, n, 100):
+        if i // 1000 == i:
+            print(i, '/', n)
+        _ids = ids[i:min(i + 100, n)]
+        try:
+            _users = _get_users_batch(client=client,
+                                      ids=_ids)
+        except:
+            print('something bad happened', i/100 + 1)
+        users += _users['data']
+        time.sleep(3.1)
+
+    return users
+
+
+# https://docs.tweepy.org/en/latest/client.html#tweepy.Client.get_users_tweets
