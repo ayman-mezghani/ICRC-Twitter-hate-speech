@@ -15,3 +15,8 @@ dependencies:
     - matplotlib
     - plotly
     - ruptures
+    - pandarallel
+    - fasttext
+    - nltk
+    - emoji
+    - spacy
