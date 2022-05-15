@@ -1,6 +1,7 @@
 name: lsir
 channels:
   - conda-forge
+  - pytorch
   - defaults
 dependencies:
   - python=3.8
@@ -8,6 +9,10 @@ dependencies:
   - pandas
   - jupyterlab
   - seaborn
+  - pytorch::pytorch
+  - pytorch::torchvision
+  - pytorch::torchaudio 
+  - cudatoolkit=11.3
   - pip
   - pip:
     - pyarrow
@@ -21,3 +26,4 @@ dependencies:
     - emoji
     - spacy
     - scikit-learn
+    - transformers
