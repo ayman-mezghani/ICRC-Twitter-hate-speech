@@ -77,24 +77,25 @@ model = model.to(device)
 print('Allocated:', round(torch.cuda.memory_allocated(0)/1024**3,1), 'GB')
 print('Cached:   ', round(torch.cuda.memory_reserved(0)/1024**3,1), 'GB')
 
-step = 50
+step = 5
 res = []
 
 for i in tqdm(list(range(0, len(df_tweets), step))):
     j = min(i+step, len(df_tweets))
-    print(i, j, len(df_tweets))
     
     _texts = texts[i:j]
     
     ### Tokenizing
 
     encoded_input = tokenizer(_texts, return_tensors='pt', padding=True).to(device)
+    # encoded_input = tokenizer(_texts, return_tensors='pt', padding=True)
 
     ### Hate Speech Classification
 
     output = model(**encoded_input)
 
     scores = softmax(output[0].detach().cpu().numpy(), axis=1)
+    # scores = softmax(output[0].detach().numpy(), axis=1)
     
     res.append(scores)
     
@@ -103,7 +104,7 @@ for i in tqdm(list(range(0, len(df_tweets), step))):
     torch.cuda.empty_cache()
 
 
-result_scores = pd.DataFrame(np.concatenate(res, axis=0), index=sample.index).rename(columns=id2label)['HATE']
+result_scores = pd.DataFrame(np.concatenate(res, axis=0), index=df_tweets.index).rename(columns=id2label)['HATE']
 
 df_tweets['hate_speech_a'] = result_scores
 
