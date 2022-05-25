@@ -94,8 +94,8 @@ for i in tqdm(list(range(0, len(df_tweets), step))):
 
     output = model(**encoded_input)
 
-    scores = softmax(output[0].detach().cpu().numpy(), axis=1)
-    # scores = softmax(output[0].detach().numpy(), axis=1)
+    scores = output[0].detach().cpu().numpy()
+    # scores = output[0].detach().numpy()
     
     res.append(scores)
     
@@ -103,9 +103,11 @@ for i in tqdm(list(range(0, len(df_tweets), step))):
     del output
     torch.cuda.empty_cache()
 
+res = np.concatenate(res, axis=0)
 
-result_scores = pd.DataFrame(np.concatenate(res, axis=0), index=df_tweets.index).rename(columns=id2label)['HATE']
+result_scores = pd.DataFrame(res, index=df_tweets.index).rename(columns=id2label)
+result_softmax = pd.DataFrame(softmax(res, axis=1), index=df_tweets.index).rename(columns=id2label)
 
-df_tweets['hate_speech_a'] = result_scores
+df_tweets = df_tweets.join(result_scores).join(result_softmax, rsuffix='_softmax')
 
-df_tweets[['id', 'hate_speech_a']].to_parquet('data/hate_speech/hate_model_a.parquet')
+df_tweets[['id', 'NON_HATE', 'HATE', 'NON_HATE_softmax', 'HATE_softmax']].to_parquet('data/hate_speech/hate_model_a.parquet')

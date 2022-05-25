@@ -82,7 +82,7 @@ print('Cached:   ', round(torch.cuda.memory_reserved(0)/1024**3,1), 'GB')
 step = 1
 res = []
 
-for i in tqdm(list(range(0, len(df_tweets), step))):
+for i in tqdm(list(range(0, len(df_tweets), step))[]):
     j = min(i+step, len(df_tweets))
     
     _texts = texts[i:j]
@@ -95,11 +95,11 @@ for i in tqdm(list(range(0, len(df_tweets), step))):
     ### Hate Speech Classification
     try:
         output = model(**encoded_input)
-        scores = softmax(output[0].detach().cpu().numpy(), axis=1)
-        # scores = softmax(output[0].detach().numpy(), axis=1)
+        scores = output[0].detach().cpu().numpy()
+        # scores = output[0].detach().numpy()
     except:
         output = None
-        scores = np.array([None, None])
+        scores = np.array([[0, 0]])
     
     res.append(scores)
     
@@ -107,9 +107,11 @@ for i in tqdm(list(range(0, len(df_tweets), step))):
     del output
     torch.cuda.empty_cache()
 
+res = np.concatenate(res, axis=0)
 
-result_scores = pd.DataFrame(np.concatenate(res, axis=0), index=df_tweets.index).rename(columns=labels)['hate']
+result_scores = pd.DataFrame(res, index=df_tweets.index).rename(columns=labels)
+result_softmax = pd.DataFrame(softmax(res, axis=1), index=df_tweets.index).rename(columns=labels)
 
-df_tweets['hate_speech_b'] = result_scores
+df_tweets = df_tweets.join(result_scores).join(result_softmax, rsuffix='_softmax')
 
-df_tweets[['id', 'hate_speech_b']].to_parquet('data/hate_speech/hate_model_b.parquet')
+df_tweets[['id', 'not-hate', 'hate', 'not-hate_softmax', 'hate_softmax']].to_parquet('data/hate_speech/hate_model_b.parquet')
