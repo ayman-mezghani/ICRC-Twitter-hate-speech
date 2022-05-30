@@ -82,7 +82,7 @@ print('Cached:   ', round(torch.cuda.memory_reserved(0)/1024**3,1), 'GB')
 step = 1
 res = []
 
-for i in tqdm(list(range(0, len(df_tweets), step))[]):
+for i in tqdm(list(range(0, len(df_tweets), step))):
     j = min(i+step, len(df_tweets))
     
     _texts = texts[i:j]
