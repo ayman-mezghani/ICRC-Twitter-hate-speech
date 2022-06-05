@@ -1,6 +1,7 @@
 .idea/
 dump/
 data/
+plots/
 draft*
 token*
 test*
