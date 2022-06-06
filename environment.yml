@@ -19,6 +19,7 @@ dependencies:
     - tweepy
     - matplotlib
     - plotly
+    - kaleido
     - ruptures
     - pandarallel
     - fasttext
