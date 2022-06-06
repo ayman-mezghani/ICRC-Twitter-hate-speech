@@ -1,4 +1,4 @@
-name: lsir
+name: lsir-mezghani-hate_speech
 channels:
   - conda-forge
   - pytorch
