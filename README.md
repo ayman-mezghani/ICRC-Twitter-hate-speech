@@ -1,4 +1,4 @@
-# ICRC-Twitter-hate-speech
+# ICRC Twitter Hate Speech Detection
 
 Ayman Mezghani, EPFL. [email](mailto:ayman.mezghani@epfl.ch)
 
