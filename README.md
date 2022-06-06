@@ -16,6 +16,7 @@ An environment can be installed as follows:
 ```
 conda env create -f environment.yml
 ```
+This will create an environment called `lsir-mezghani-hate_speech`.
 
 ## Files
  - `00_clean_keywords.ipynb`: Notebook containing keyword cleaning code
