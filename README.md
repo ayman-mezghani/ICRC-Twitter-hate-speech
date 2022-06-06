@@ -13,7 +13,9 @@ Follow this [link](https://ayman-mezghani.github.io/ICRC-Twitter-hate-speech/int
 ## Setup
 The file `environment.yml` contains the needed dependencies to run the code.<br>
 An environment can be installed as follows:
-```conda env create -f environment.yml```
+```
+conda env create -f environment.yml
+```
 
 ## Files
  - `00_clean_keywords.ipynb`:
