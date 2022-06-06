@@ -7,10 +7,10 @@ Subervised by:
  - Rebekah Overdorf, LSIR, EPFL. [email](mailto:rebekah.overdorf@epfl.ch)
  - Rémi Philippe Lebret, LSIR, EPFL. [email](mailto:remi.lebret@epfl.ch)
 
-## Interavtive Plots
+## Interactive Plots
 Follow this [link](https://ayman-mezghani.github.io/ICRC-Twitter-hate-speech/interactive/) to access the plots.
 
-## Setup
+## Environment Setup
 The file `environment.yml` contains the needed dependencies to run the code.<br>
 An environment can be installed as follows:
 ```
