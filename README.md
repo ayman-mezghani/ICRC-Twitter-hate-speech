@@ -38,7 +38,7 @@ This will create an environment called `lsir-mezghani-hate_speech`.
 **Note**: The notebooks are made to be run in order in case no data is provided. The data folder structure will have to be created from scratch.
 
 ## Data Collection
-In order to use the data collection module, a `token.json` file needs to be created and placed at root.<br>
+In order to use the data collection module, a `token.json` file needs to be created and placed at root. The API credentials can be obtained from the [Twitter API website](https://developer.twitter.com/en/docs/twitter-api).<br>
 The content of the file is to be structured as follows:
 ```
 {
