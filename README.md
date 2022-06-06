@@ -7,9 +7,6 @@ Subervised by:
  - Rebekah Overdorf, LSIR, EPFL. [email](mailto:rebekah.overdorf@epfl.ch)
  - Rémi Philippe Lebret, LSIR, EPFL. [email](mailto:remi.lebret@epfl.ch)
 
-## Project Report (EPFL only)
-The project report can be accessed using the following [link]().
-
 ## Interavtive Plots
 Follow this [link](https://ayman-mezghani.github.io/ICRC-Twitter-hate-speech/interactive/) to access the plots.
 
@@ -39,7 +36,18 @@ conda env create -f environment.yml
 
 **Note**: The notebooks are made to be run in order in case no data is provided. The data folder structure will have to be created from scratch.
 
-## Data (EPFL only)
+## Data Collection
+In order to use the data collection module, a `token.json` file needs to be created and placed at root.<br>
+The content of the file is to be structured as follows:
+```
+{
+  "bearer_token": <bearer_token>,
+  "api_key": <api_key>,
+  "api_secret": <api_secret>
+}
+```
+
+## Provided Data (EPFL only)
 The data is available using this [link](https://drive.google.com/drive/folders/1pP-ypxPv85wf9OOD8ajqkBntjo3PYylF?usp=sharing).<br>
 The data folder is to be placed at the root of the repository and is structured as follows:
 ```
@@ -53,13 +61,5 @@ data
 └── keywords.txt
 ```
 
-## Data Collection
-In order to use the data collection module, a `token.json` file needs to be created and placed at root.<br>
-The content of the file is to be structured as follows:
-```
-{
-  "bearer_token": <bearer_token>,
-  "api_key": <api_key>,
-  "api_secret": <api_secret>
-}
-```
+## Project Report (EPFL only)
+The project report can be accessed using the following [link]().
