@@ -1,4 +1,4 @@
-# ICRC-Twitter-hate-speech (semester project)
+# ICRC-Twitter-hate-speech
 
 Ayman Mezghani, EPFL. [email](mailto:ayman.mezghani@epfl.ch)
 
