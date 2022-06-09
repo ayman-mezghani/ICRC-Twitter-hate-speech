@@ -63,4 +63,4 @@ data
 ```
 
 ## Project Report (EPFL only)
-The project report can be accessed using the following [link]().
+The project report can be accessed using the following [link](https://drive.google.com/file/d/15ZU7RQ-qzLJlp0KjTYTyK5Bk7bX9tlmA/view?usp=sharing).
